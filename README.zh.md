@@ -63,6 +63,19 @@ cd codex-memory-trim
 python3 ~/.codex/skills/codex-memory-trim/scripts/collect.py
 ```
 
+## 自动执行
+
+开机状态下让它自己定时整理，不用你惦记。Linux 和 macOS 都支持：
+
+```bash
+./install.sh schedule daily 09:30             # 每天固定 09:30
+./install.sh schedule weekly sat 10:00        # 每周六 10:00
+./install.sh schedule daily 09:00 --random 2h # 09:00 起随机延迟最多 2 小时
+./install.sh unschedule                        # 取消
+```
+
+Linux 装的是 systemd 用户级 timer（`Persistent=true`，关机错过的那次会在下次开机补跑；`--random` 用 `RandomizedDelaySec`）；macOS 装的是 launchd LaunchAgent（launchd 没有随机延迟，`--random` 在安装时直接随机化触发时间点）。每次运行都会先备份再巡检，只有完全符合删除标准的线程才会被清理，没有合格候选就一个文件都不动；日志在 `~/.local/state/codex-memory-trim/auto.log`，同一时刻最多一个实例。两者都没有的系统会给出一条随机分钟的 crontab 行。
+
 ## 三个子技能
 
 主 SKILL.md 是一张路由表，按意图只加载对应的子技能文件，不给上下文添负担。

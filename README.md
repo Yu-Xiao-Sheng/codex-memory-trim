@@ -63,6 +63,19 @@ After installing, just say "trim codex memory" (or 中文 "精简记忆") in a n
 python3 ~/.codex/skills/codex-memory-trim/scripts/collect.py
 ```
 
+## Automatic scheduling
+
+Let it tidy up on its own while the machine is on. Works on Linux and macOS:
+
+```bash
+./install.sh schedule daily 09:30             # every day at 09:30
+./install.sh schedule weekly sat 10:00        # Saturdays at 10:00
+./install.sh schedule daily 09:00 --random 2h # from 09:00, random delay up to 2h
+./install.sh unschedule                       # remove
+```
+
+On Linux this installs a systemd user timer with `Persistent=true` (a run missed while the machine was off fires after the next boot; `--random` maps to `RandomizedDelaySec`). On macOS it installs a launchd LaunchAgent — launchd has no randomized delay, so `--random` randomizes the trigger time at install time. Every run backs up first, then audits; only threads that fully meet the deletion criteria get cleaned, and if nothing qualifies it touches nothing. Logs go to `~/.local/state/codex-memory-trim/auto.log`, and overlapping runs are prevented with a lock. Systems with neither systemd nor launchd get a crontab line with a randomized minute instead.
+
 ## Three sub-skills
 
 The main SKILL.md is a routing table that loads only the sub-skill file matching your intent, so it never bloats context.
