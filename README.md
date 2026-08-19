@@ -1,5 +1,7 @@
 # codex-memory-trim
 
+<p align="center"><img src="assets/logo.png" width="160" alt="codex-memory-trim logo"></p>
+
 A skill that puts Codex's global memory on a periodic diet: detect duplicates, prune stale threads, compress verbose entries, and add custom global rules through a safe channel.
 
 English | [中文](README.zh.md)
@@ -11,6 +13,8 @@ Have you noticed your Codex getting slower and wordier the longer you use it? I'
 The root cause is memory. Codex's global memory grows quietly in `~/.codex/memories`, and most of it isn't added by hand; Codex writes experience there itself after every session. Reuse is good in principle, but memories never retire: the acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, sessions where nothing was even run — all sitting there, and **every new task starts by searching through them**. Old memories were written for old projects and old contexts; in a new one they turn into shackles. The model drags outdated constraints onto fresh requirements, reruns redundant checks, and talks itself into a dead end. That's the curse of knowledge. A person might eventually suspect they're outdated; a model won't. The rules get injected at the start of every session, and it follows them every single time. Diligently inefficient.
 
 The way I see it, Codex is my second brain. And a brain, treated the way brains actually work, needs periodic unloading: input with no output just makes noise. Don't merely use it as a tool; manage it like another brain of your own, starting from accepting that this brain gets its own curse of knowledge. This project is the "managing" part: unload (clear out stale and redundant entries, tighten the verbose ones) and set rules (when to be strict, when to be fast). Both steps are baked into a skill.
+
+![Memory on a diet: a bloated, tangled brain goes through a trimming funnel and comes out lean](assets/concept.png)
 
 ## Real-world results
 
