@@ -10,11 +10,13 @@ Have you noticed your Codex getting slower and more verbose the longer you use i
 
 I'm not guessing; I lived it. A while back I handed Codex a long-running task. Based on similar tasks I'd given it before, I expected it done within 24 hours, so I left it running in the background and went off to other projects — and I'll admit my own part in this: I trusted my experience too much and never checked back in. A full week later it declared failure, reporting that the very first stage was incomplete. When I dug through the session history, what I found was almost absurd: it was "engineering" every single step according to my global memories. A trivial local startup script (the kind that just wraps Podman) got written, immediately sent into open-code-review, then endlessly patched against security guidelines, refined and re-refined on that one tiny problem while the main progress went nowhere. Strictly speaking, it did nothing wrong — every step followed the rules in its memory. But when every command and every script has to go through that gauntlet, efficiency drops off a cliff. Review-fix-review-again is what product releases deserve; dev environments and local demos don't need it at all.
 
-The root cause is memory. Codex's global memory lives in `~/.codex/memories` and grows quietly as you work. Note that most of it isn't added by hand — Codex itself distills and writes experience there after every session, so any session can contribute new global memories. That's a good thing in principle: new tasks can lean on past experience and skip rediscovery. But memories never retire. The acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, long-expired pipeline IDs, even sessions where nothing was actually run — they all sit in memory, and **every new task starts by searching through them**.
+The root cause is memory. Codex's global memory lives in `~/.codex/memories` and grows quietly as you work. Most of it isn't added by hand — Codex itself distills and writes experience there after every session, so any session can contribute new global memories. That's a good thing in principle: new tasks can lean on past experience and skip rediscovery. But memories never retire. The acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, long-expired pipeline IDs, even sessions where nothing was actually run — they all sit in memory, and **every new task starts by searching through them**.
 
-Here's the real trouble with old memories: they were written for old projects, old tasks, old contexts. Switch projects or task types, and those rules stop helping and start shackling. The model drags outdated constraints onto fresh requirements, runs redundant checks over and over, and eventually talks itself into a dead end. It's the same curse of knowledge humans suffer from: the more experienced you are, the harder it is to see a new problem with fresh eyes. The difference is that a person might eventually suspect they're outdated — a model won't. The rules sit in memory, get injected at the start of every session, and the model follows them faithfully every single time. Diligently inefficient.
+The real trouble: old memories were written for old projects, old tasks, old contexts. Switch projects or task types, and those rules stop helping and start shackling. The model drags outdated constraints onto fresh requirements, runs redundant checks over and over, and eventually talks itself into a dead end. It's the same curse of knowledge humans suffer from: the more experienced you are, the harder it is to see a new problem with fresh eyes. The difference is that a person might eventually suspect they're outdated; a model won't. The rules sit in memory, get injected at the start of every session, and the model follows them faithfully every single time. Diligently inefficient.
 
-So two things need to happen: put the memory on a periodic diet — clear out the stale and redundant entries, tighten the verbose ones — and actively set rules that tell Codex when to be strict and when to be fast. This project turns both into a skill any Codex session can execute safely, so you never have to chew through several hundred KB of Markdown by hand.
+The way I see it, Codex is my second brain. And a brain, treated the way brains actually work, needs periodic unloading: input with no output doesn't make it smarter, just noisier. So don't merely use it as a tool; manage it like another brain of your own. That starts with accepting that this brain gets its own curse of knowledge.
+
+This project is the "managing" part, in two steps. First, unload: clear out the stale and redundant entries, tighten the verbose ones. Second, set rules: tell Codex explicitly when to be strict and when to be fast. Both steps are baked into a skill any Codex session can run safely, so you never have to chew through several hundred KB of Markdown by hand.
 
 ## Real-world results
 
@@ -22,19 +24,19 @@ I ran three trim rounds against my own production memory directory. All numbers 
 
 | Metric | Before | After 3 rounds | Change |
 |---|---|---|---|
-| MEMORY.md (retrieval layer) | 162 KB / 1482 lines / 32 groups | 46 KB / 474 lines / 17 groups | **-72%** |
-| memory_summary.md (loaded every session) | 7.3 KB / 97 lines | 5.2 KB / 39 lines | **-60% lines** |
+| MEMORY.md (retrieval layer) | 162 KB / 1482 lines / 32 groups | 46 KB / 474 lines / 17 groups | -72% |
+| memory_summary.md (loaded every session) | 7.3 KB / 97 lines | 5.2 KB / 39 lines | -60% lines |
 | raw_memories.md (consolidation input) | 340 KB / 77 threads | 257 KB / 53 threads | -24% |
 | rollout_summaries | 77 files / 528 KB | 53 files / 292 KB | -45% |
-| Total memory dir (excl. .git) | ~1.1 MB | 593 KB | **-46%** |
+| Total memory dir (excl. .git) | ~1.1 MB | 593 KB | -46% |
 | Threads in state DB | 79 | 55 | -30% |
 
 Details worth calling out:
 
-- **None of the 31 removed threads was a mistake.** Five were empty "READY" echo sessions. The rest were mostly one-off lookups, records superseded by newer versions, and "memories" from sessions where not a single command was executed. Their common trait: zero retrieval hits. The verdict comes from the `usage_count` column in the `stage1_outputs` table, so you can see exactly what you're deleting before you delete it.
-- **memory_summary.md is injected into every new session.** Going from 97 lines to 40 cuts the fixed per-session overhead — and that's the number *after* adding two new global rules (efficiency-first, Superpowers gating) into it.
-- **One rule used to exist in five wordings.** "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
-- **Memory kept growing during the trim.** Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
+- None of the 31 removed threads was a mistake. Five were empty "READY" echo sessions. The rest were mostly one-off lookups, records superseded by newer versions, and "memories" from sessions where not a single command was executed. Their common trait: zero retrieval hits. The verdict comes from the `usage_count` column in the `stage1_outputs` table, so you can see exactly what you're deleting before you delete it.
+- memory_summary.md is injected into every new session. Going from 97 lines to 40 cuts the fixed per-session overhead — and that's the number *after* adding two new global rules (efficiency-first, Superpowers gating) into it.
+- One rule used to exist in five wordings. "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
+- Memory kept growing during the trim. Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
 
 The skill has been in use inside my team for a while now, and the reaction has been good: the common report is that Codex gets through tasks faster.
 
@@ -103,16 +105,16 @@ A trim must move all three layers together. Delete files without touching the DB
 
 ## Safety design
 
-- **Backup before touching anything**: full-directory tar plus a separate sqlite copy, timestamped into `~/.codex/backups/`.
-- **Read-only audit**: `collect.py` writes nothing; run it whenever.
-- **git as the safety net**: the memory directory is itself a git repo; `git reset --hard` rolls back in one step.
-- **Hard red lines baked into the skill**: never touch `sessions/*.jsonl` or ad-hoc notes, never use `codex debug clear-memories` (that's a full reset), never write while a consolidation job is running.
+- Backup before touching anything: full-directory tar plus a separate sqlite copy, timestamped into `~/.codex/backups/`.
+- Read-only audit: `collect.py` writes nothing; run it whenever.
+- git as the safety net: the memory directory is itself a git repo; `git reset --hard` rolls back in one step.
+- Hard red lines baked into the skill: never touch `sessions/*.jsonl` or ad-hoc notes, never use `codex debug clear-memories` (that's a full reset), never write while a consolidation job is running.
 
 ## Pitfalls we hit (all encoded into the skill's rules)
 
-1. **Never hand-copy thread IDs.** Copying IDs from the database into scripts once produced invisible character differences that made two threads survive two deletion passes. The rule now: extract IDs programmatically from file content.
-2. **Automatic consolidation races you.** The overnight pipeline rewrites memory files and resets the git baseline; blindly overwriting drops whatever it just wrote. The procedure now checks baseline state first and merges instead of overwriting when a consolidation just ran.
-3. **In-flight sessions don't get smarter.** The memory snapshot is injected once at session start. After a trim, old sessions keep the old snapshot; only new sessions (or `codex fork`) pick up the changes.
+1. Never hand-copy thread IDs. Copying IDs from the database into scripts once produced invisible character differences that made two threads survive two deletion passes. The rule now: extract IDs programmatically from file content.
+2. Automatic consolidation races you. The overnight pipeline rewrites memory files and resets the git baseline; blindly overwriting drops whatever it just wrote. The procedure now checks baseline state first and merges instead of overwriting when a consolidation just ran.
+3. In-flight sessions don't get smarter. The memory snapshot is injected once at session start. After a trim, old sessions keep the old snapshot; only new sessions (or `codex fork`) pick up the changes.
 
 ## Who it's for
 
