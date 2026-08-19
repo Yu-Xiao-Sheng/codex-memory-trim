@@ -8,17 +8,17 @@ A skill that puts Codex's global memory on a periodic diet: detect duplicates, p
 
 Have you noticed your Codex getting slower and more verbose the longer you use it? You hand it a simple request, and it starts by digging through a pile of old rules — this needs verification first, that needs an approval gate, last time's lesson must be double-checked — turning a five-minute job into a process audit. Worse, sometimes it falls into a loop, grinding away at a problem that doesn't exist, burning tokens and solving nothing.
 
-The problem usually isn't the model. It's the memory.
+I'm not guessing; I lived it. A while back I handed Codex a long-running task. Based on similar tasks I'd given it before, I expected it done within 24 hours, so I left it running in the background and went off to other projects — and I'll admit my own part in this: I trusted my experience too much and never checked back in. A full week later it declared failure, reporting that the very first stage was incomplete. When I dug through the session history, what I found was almost absurd: it was "engineering" every single step according to my global memories. A trivial local startup script (the kind that just wraps Podman) got written, immediately sent into open-code-review, then endlessly patched against security guidelines, refined and re-refined on that one tiny problem while the main progress went nowhere. Strictly speaking, it did nothing wrong — every step followed the rules in its memory. But when every command and every script has to go through that gauntlet, efficiency drops off a cliff. Review-fix-review-again is what product releases deserve; dev environments and local demos don't need it at all.
 
-Codex's global memory lives in `~/.codex/memories` and grows quietly as you work. After each session it distills what it "learned" into that directory. That's a good thing in principle: new tasks can lean on past experience and skip rediscovery. But memories never retire. The acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, long-expired pipeline IDs, even sessions where nothing was actually run — they all sit in memory, and **every new task starts by searching through them**.
+The root cause is memory. Codex's global memory lives in `~/.codex/memories` and grows quietly as you work. Note that most of it isn't added by hand — Codex itself distills and writes experience there after every session, so any session can contribute new global memories. That's a good thing in principle: new tasks can lean on past experience and skip rediscovery. But memories never retire. The acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, long-expired pipeline IDs, even sessions where nothing was actually run — they all sit in memory, and **every new task starts by searching through them**.
 
 Here's the real trouble with old memories: they were written for old projects, old tasks, old contexts. Switch projects or task types, and those rules stop helping and start shackling. The model drags outdated constraints onto fresh requirements, runs redundant checks over and over, and eventually talks itself into a dead end. It's the same curse of knowledge humans suffer from: the more experienced you are, the harder it is to see a new problem with fresh eyes. The difference is that a person might eventually suspect they're outdated — a model won't. The rules sit in memory, get injected at the start of every session, and the model follows them faithfully every single time. Diligently inefficient.
 
-So memory needs a periodic diet: drop the duplicates, prune the stale, shorten the verbose. This project turns that whole procedure into a skill any Codex session can execute safely, so you never have to chew through several hundred KB of Markdown by hand.
+So two things need to happen: put the memory on a periodic diet (drop duplicates, prune the stale, shorten the verbose), and actively set rules that tell Codex when to be strict and when to be fast. This project turns both into a skill any Codex session can execute safely, so you never have to chew through several hundred KB of Markdown by hand.
 
 ## Real-world results
 
-The author ran three trim rounds against a production memory directory. All numbers below are from actual operations (2026-08-18 to 2026-08-19):
+I ran three trim rounds against my own production memory directory. All numbers below are from actual operations (2026-08-18 to 2026-08-19):
 
 | Metric | Before | After 3 rounds | Change |
 |---|---|---|---|
@@ -35,6 +35,14 @@ Details worth calling out:
 - **memory_summary.md is injected into every new session.** Going from 97 lines to 40 cuts the fixed per-session overhead — and that's the number *after* adding two new global rules (efficiency-first, Superpowers gating) into it.
 - **One rule used to exist in five wordings.** "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
 - **Memory kept growing during the trim.** Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
+
+The skill has been in use inside my team for a while now. Feedback has been good — people consistently report faster Codex turnarounds.
+
+## Beyond trimming: setting the rules
+
+Deleting only treats the symptom; new memories keep arriving. So I used the add-global sub-skill to write one explicit rule into global memory: the full design-develop-test-QA flow applies only when the user explicitly requests it or during product feature development; everything else runs efficiency-first — implement the requirement directly, no repeated verification loops. Heavyweight workflows like Superpowers work the same way: opt-in only, never default. Plus a stop-loss: if the same problem fails twice in a row, stop and ask the user for a decision instead of retrying in infinite variations. Product repos keep their existing strict release gates; the two coexist without conflict.
+
+That rule now sits near the top of my memory_summary.md preference list, and every new session reads it before doing anything else.
 
 ## Install
 
