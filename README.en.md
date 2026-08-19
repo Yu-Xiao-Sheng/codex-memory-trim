@@ -2,7 +2,7 @@
 
 A skill that puts Codex's global memory on a periodic diet: detect duplicates, prune stale threads, compress verbose entries, and add custom global rules through a safe channel.
 
-[中文版（默认）](README.md) · Both READMEs are maintained together; update both when changing either.
+[中文版（默认）](README.md)
 
 ## Why this exists
 

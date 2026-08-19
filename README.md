@@ -2,7 +2,7 @@
 
 给 Codex 的全局记忆定期减负的 skill：检测重复、清理过期线程、压缩冗长表达，顺带提供一个安全添加自定义全局规则的通道。
 
-[English version](README.en.md) · 两份文档同步维护，改动时请一起改。
+[English version](README.en.md)
 
 ## 为什么会有这个项目
 
