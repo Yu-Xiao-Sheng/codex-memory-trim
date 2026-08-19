@@ -1,75 +1,75 @@
 # codex-memory-trim
 
-给 Codex 的全局记忆定期减负的 skill：检测重复、清理过期线程、压缩冗长表达，顺带提供一个安全添加自定义全局规则的通道。
+A skill that puts Codex's global memory on a periodic diet: detect duplicates, prune stale threads, compress verbose entries, and add custom global rules through a safe channel.
 
-[English version](README.en.md)
+English | [中文](README.zh.md)
 
-## 为什么会有这个项目
+## Why this exists
 
-你有没有这种感觉：Codex 用得越久，越慢、越啰嗦？我不是猜的。前段时间我派了个长任务，按以往经验最多 24 小时能收尾，就丢在后台没再管，这里也有我的责任，太信任经验没回头看一眼。一个星期后它宣告失败，报告说第一个环节没完成。我翻开会话历史，发现它在按全局记忆"工程化"每一个环节：一个依赖 Podman 的简单本地启动脚本，写完就进 open-code-review，不断补安全准则，反复细化，主进度原地踏步。严格说它没做错什么，每一步都符合记忆里的规矩，但每个环节都这么过一遍，效率就是指数级下降。审查-修复-再审查是产品上线该有的流程，开发环境和本地 demo 完全不需要。
+Have you noticed your Codex getting slower and wordier the longer you use it? I'm not guessing. A while back I handed it a long task that, by past experience with similar work, should have wrapped within 24 hours, so I left it running in the background (partly my fault; I trusted experience and never checked back). A full week later it declared failure, reporting that the very first stage was incomplete. The session history showed it "engineering" every single step according to my global memories: a trivial local startup script that wraps Podman got written, sent into open-code-review, endlessly patched against security guidelines, refined and re-refined, while the main progress went nowhere. Strictly speaking it did nothing wrong; every step followed its rules. But run every step through that gauntlet and efficiency falls off a cliff. Review-fix-review-again belongs to product releases; dev environments and local demos don't need it.
 
-根源在记忆。Codex 的全局记忆在 `~/.codex/memories` 里悄悄增长，而且大部分不是手动加的，是它每次会话结束自己总结写入的。经验复用是好事，但记忆不会自己退休：上上个项目的验收流程、只出现过一次的报错处理、连命令都没执行的空会话，全都躺在里面，而且**每一个新任务开始时都会先被检索一遍**。旧记忆是为旧项目、旧场景写的，换了场景就成了枷锁：模型拿过时的约束套新的需求，多余的校验做了一遍又一遍，最后绕进死胡同。这就是知识诅咒。人多少能意识到自己过时了，模型不会；规则每个会话开局注入一遍，它每次都照章办事，认真且低效。
+The root cause is memory. Codex's global memory grows quietly in `~/.codex/memories`, and most of it isn't added by hand; Codex writes experience there itself after every session. Reuse is good in principle, but memories never retire: the acceptance workflow from a project two generations ago, the fix for an error that occurred exactly once, sessions where nothing was even run — all sitting there, and **every new task starts by searching through them**. Old memories were written for old projects and old contexts; in a new one they turn into shackles. The model drags outdated constraints onto fresh requirements, reruns redundant checks, and talks itself into a dead end. That's the curse of knowledge. A person might eventually suspect they're outdated; a model won't. The rules get injected at the start of every session, and it follows them every single time. Diligently inefficient.
 
-说到底，我是把 Codex 当自己的第二个大脑在用的。既是大脑，就得按用脑的科学方式对待：只进不出只会越来越乱，定期减负是刚需；别只把它当工具来"使用"，要把它当另一个脑子来"管理"，前提是承认它也会犯知识诅咒。这个项目干的就是"管理"这件事：一是减负，清掉过期和重复的条目，把啰嗦的表达压短；二是立规矩，明确告诉它什么时候该严格、什么时候该快。两步都固化成了 skill。
+The way I see it, Codex is my second brain. And a brain, treated the way brains actually work, needs periodic unloading: input with no output just makes noise. Don't merely use it as a tool; manage it like another brain of your own, starting from accepting that this brain gets its own curse of knowledge. This project is the "managing" part: unload (clear out stale and redundant entries, tighten the verbose ones) and set rules (when to be strict, when to be fast). Both steps are baked into a skill.
 
-## 实际效果
+## Real-world results
 
-我用自己的生产记忆库跑通了三轮精简，全部数据来自真实操作（2026-08-18 至 2026-08-19）：
+I ran three trim rounds against my own production memory directory. All numbers below are from actual operations (2026-04-18 to 2026-08-19):
 
-| 指标 | 精简前 | 三轮精简后 | 变化 |
+| Metric | Before | After 3 rounds | Change |
 |---|---|---|---|
-| MEMORY.md（检索层） | 162 KB / 1482 行 / 32 组 | 46 KB / 474 行 / 17 组 | -72% |
-| memory_summary.md（每会话必加载） | 7.3 KB / 97 行 | 5.2 KB / 39 行 | -60% 行数 |
-| raw_memories.md（整理输入） | 340 KB / 77 线程 | 257 KB / 53 线程 | -24% |
-| rollout_summaries | 77 个 / 528 KB | 53 个 / 292 KB | -45% |
-| 记忆目录总量（不含 .git） | 约 1.1 MB | 593 KB | -46% |
-| 状态库线程数 | 79 | 55 | -30% |
+| MEMORY.md (retrieval layer) | 162 KB / 1482 lines / 32 groups | 46 KB / 474 lines / 17 groups | -72% |
+| memory_summary.md (loaded every session) | 7.3 KB / 97 lines | 5.2 KB / 39 lines | -60% lines |
+| raw_memories.md (consolidation input) | 340 KB / 77 threads | 257 KB / 53 threads | -24% |
+| rollout_summaries | 77 files / 528 KB | 53 files / 292 KB | -45% |
+| Total memory dir (excl. .git) | ~1.1 MB | 593 KB | -46% |
+| Threads in state DB | 79 | 55 | -30% |
 
-几个值得展开的细节：
+Details worth calling out:
 
-- 删掉的 31 个线程里没有一个是冤枉的。有 5 个是只会回复 "READY" 的空回显会话；剩下的多是一次性查询、被新版本取代的旧记录、连命令都没执行过的"空记忆"。它们的共同点：检索命中次数为零。判断依据是状态库 `stage1_outputs` 表里的 `usage_count`，删之前看得清清楚楚。
-- memory_summary.md 是每个新会话固定注入的上下文。97 行压到 40 行，等于每个会话开局就省下一截；而这个数字是在往里新增了两条全局规则（效率优先、Superpowers 门控）之后的结果，净收益是实打实的。
-- 同一条规则曾经以 5 种措辞存在。"pre 部署后必须手动验收才能动 prod"这句话，散落在 5 个任务组里各有各的说法。合并成 1 条放进全局偏好，组内只留领域特定规则。
-- 精简期间记忆还在正常生长。两晚之间 Codex 的自动整理新增了 8 个线程的新内容（新功能验收、事故诊断等）。最终态是"精简叠加新增"的净结果，零丢失。这说明它不是一次性手术，是可以每隔几周跑一次的日常维护。
+- None of the 31 removed threads was a mistake. Five were empty "READY" echo sessions. The rest were mostly one-off lookups, records superseded by newer versions, and "memories" from sessions where not a single command was executed. Their common trait: zero retrieval hits. The verdict comes from the `usage_count` column in the `stage1_outputs` table, so you can see exactly what you're deleting before you delete it.
+- memory_summary.md is injected into every new session. Going from 97 lines to 40 cuts the fixed per-session overhead — and that's the number *after* adding two new global rules (efficiency-first, Superpowers gating) into it.
+- One rule used to exist in five wordings. "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
+- Memory kept growing during the trim. Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
 
-这个 skill 在我团队里用了一段时间，反响不错，大家的普遍反馈是 Codex 干活快了。
+The skill has been in use inside my team for a while now, and the reaction has been good: the common report is that Codex gets through tasks faster.
 
-## 减负之外，更管用的是立规矩
+## Beyond trimming: setting the rules
 
-删只能治标，新记忆还在源源不断地生成。所以我用 add-global 子技能往全局记忆里写了一条明确的规则：完整的 设计-开发-测试-质检 流程，只在用户明确要求、或进行产品功能开发时使用；其余情况一律效率优先，直接实现需求，不进入重复的检测校验环节。Superpowers 这类重型工作流同理，默认不启用，点名才用。另外加了一条止损：同一个问题连续两次没解决就停下来向用户要决策，不许换着姿势无限循环。产品仓库的上线验收保留原有的严格门槛，两边互不干扰。
+Deleting only treats the symptom; new memories keep arriving. So I used the add-global sub-skill to write one explicit rule into global memory: the full design-develop-test-QA flow applies only when the user explicitly requests it or during product feature development; everything else runs efficiency-first — implement the requirement directly, no repeated verification loops. Heavyweight workflows like Superpowers work the same way: opt-in only, never default. Plus a stop-loss: if the same problem fails twice in a row, stop and ask the user for a decision instead of retrying in infinite variations. Product repos keep their existing strict release gates; the two coexist without conflict.
 
-这条规则现在就排在我 memory_summary.md 偏好列表的前几条，每个新会话开工前都会先读到它。
+That rule now sits near the top of my memory_summary.md preference list, and every new session reads it before doing anything else.
 
-## 安装
+## Install
 
-需要 bash 和 python3，没有其他依赖。
+Requires bash and python3. Nothing else.
 
 ```bash
 git clone https://github.com/Yu-Xiao-Sheng/codex-memory-trim.git
 cd codex-memory-trim
-./install.sh          # 安装或更新到 ~/.codex/skills/codex-memory-trim
-./install.sh uninstall # 卸载
+./install.sh           # install or update into ~/.codex/skills/codex-memory-trim
+./install.sh uninstall # remove it
 ```
 
-想装到别的位置：`CODEX_HOME=/path/to/codex ./install.sh`。
+Custom location: `CODEX_HOME=/path/to/codex ./install.sh`.
 
-装完在新会话里说一句"精简 codex 记忆"就能触发；也可以直接跑只读巡检：
+After installing, just say "trim codex memory" (or 中文 "精简记忆") in a new session. Or run the read-only audit directly:
 
 ```bash
 python3 ~/.codex/skills/codex-memory-trim/scripts/collect.py
 ```
 
-## 三个子技能
+## Three sub-skills
 
-主 SKILL.md 是一张路由表，按意图只加载对应的子技能文件，不给上下文添负担。
+The main SKILL.md is a routing table that loads only the sub-skill file matching your intent, so it never bloats context.
 
-| 你说的话 | 实际执行 | 子技能 |
+| You say | What runs | Sub-skill |
 |---|---|---|
-| "精简记忆 / 清理过期记忆 / 去重" | 巡检 → usage 统计 → 三层一致删除 → 重写索引 → git 提交 | `subskills/trim.md` |
-| "压缩记忆 / 简化冗长表达" | 逐组改写 MEMORY.md，症状-原因-修复三段式压成一句教训，长引语留 ≤10 词 | `subskills/compress.md` |
-| "添加全局记忆：XXX" | 写 ad-hoc note（官方权威通道）→ 立即传播到 summary 和索引，不等下次自动整理 | `subskills/add-global.md` |
+| "trim / clean up / dedupe memory" | audit → usage stats → three-layer-consistent removal → rewrite index → git commit | `subskills/trim.md` |
+| "compress memory / simplify verbose entries" | rewrite MEMORY.md group by group; symptom-cause-fix triplets become one-line lessons; long quotes capped at 10 words | `subskills/compress.md` |
+| "add a global rule: X" | write an ad-hoc note (the official authoritative channel) → propagate to summary and index immediately, without waiting for the next consolidation | `subskills/add-global.md` |
 
-`collect.py` 的巡检报告长这样（只读，不改任何东西）：
+The `collect.py` audit report looks like this (read-only, touches nothing):
 
 ```
 [files]
@@ -89,32 +89,32 @@ python3 ~/.codex/skills/codex-memory-trim/scripts/collect.py
   dirty entries: 0
 ```
 
-零引用的孤儿会被标成删除候选，高引用的会被明确标记保留，删什么留什么一目了然。
+Zero-usage orphans get flagged as delete candidates; high-usage ones are explicitly marked KEEP. What to delete and what to keep is on the page in front of you.
 
-## 工作原理
+## How it works
 
-Codex 原生记忆分三层：`sessions/*.jsonl` 是不可动的原始证据；`raw_memories.md` 和 `rollout_summaries/` 是整理输入，由状态库 `memories_1.sqlite` 重新渲染；`MEMORY.md` 是检索层，`memory_summary.md` 是每个新会话启动时注入的快照。
+Codex's native memory has three layers: `sessions/*.jsonl` are immutable raw evidence; `raw_memories.md` and `rollout_summaries/` are consolidation inputs re-rendered from the `memories_1.sqlite` state DB; `MEMORY.md` is the retrieval layer, and `memory_summary.md` is the snapshot injected at each new session's start.
 
-精简必须三层联动：只删文件不动数据库，下次自动整理会把内容同步回来，等于白干。所以流程是摘要文件、raw 段落、DB 行三处一起删，最后在记忆目录的 git 基线上提交一次，让精简后的状态成为自动整理的新起点。
+A trim must move all three layers together. Delete files without touching the DB and the next automatic consolidation syncs the content right back; the deletion was wasted work. So the procedure removes the summary file, the raw section, and the DB row in one pass, then commits on the memory directory's git baseline so the trimmed state becomes the new starting point for automatic consolidation.
 
-## 安全设计
+## Safety design
 
-- 先备份再动手：tar 全目录 + sqlite 单独备份，带时间戳存到 `~/.codex/backups/`。
-- 巡检只读：`collect.py` 不写任何文件，随手可跑。
-- git 兜底：记忆目录本身就是 git 仓库，改坏了 `git reset --hard` 一步回滚。
-- 红线写死在 skill 里：不动 `sessions/*.jsonl`、不动 ad-hoc notes、不用 `codex debug clear-memories`（那是全量重置）、自动整理运行中不写文件。
+- Backup before touching anything: full-directory tar plus a separate sqlite copy, timestamped into `~/.codex/backups/`.
+- Read-only audit: `collect.py` writes nothing; run it whenever.
+- git as the safety net: the memory directory is itself a git repo; `git reset --hard` rolls back in one step.
+- Hard red lines baked into the skill: never touch `sessions/*.jsonl` or ad-hoc notes, never use `codex debug clear-memories` (that's a full reset), never write while a consolidation job is running.
 
-## 踩过的坑（都写进了 skill 的执行规则里）
+## Pitfalls we hit (all encoded into the skill's rules)
 
-1. thread id 不能手抄。从数据库往脚本里复制 id 时出现过隐形字符差异，导致两个该删的线程两次漏删。现在规则是 id 必须从文件内容程序化提取。
-2. 自动整理会和你赛跑。夜间整理流程会重写记忆文件并重置 git 基线，直接覆盖会丢掉它刚写入的新内容。现在动手前必查基线状态，发现刚整理过就先合并再改。
-3. 进行中的会话不会变聪明。记忆快照是会话启动时一次性注入的，改完记忆，老会话照旧，新会话（或 `codex fork`）才生效。
+1. Never hand-copy thread IDs. Copying IDs from the database into scripts once produced invisible character differences that made two threads survive two deletion passes. The rule now: extract IDs programmatically from file content.
+2. Automatic consolidation races you. The overnight pipeline rewrites memory files and resets the git baseline; blindly overwriting drops whatever it just wrote. The procedure now checks baseline state first and merges instead of overwriting when a consolidation just ran.
+3. In-flight sessions don't get smarter. The memory snapshot is injected once at session start. After a trim, old sessions keep the old snapshot; only new sessions (or `codex fork`) pick up the changes.
 
-## 适合谁
+## Who it's for
 
-- Codex 重度用户，`~/.codex/memories` 超过几百 KB 或 MEMORY.md 上千行
-- 受够了 Codex 套用过时规则、重复校验、在旧经验里打转
-- 想把"以后注意"这类口头叮嘱变成一条条真正落地的全局规则
+- Heavy Codex users whose `~/.codex/memories` has grown past a few hundred KB or whose MEMORY.md runs over a thousand lines
+- Anyone who has watched Codex apply outdated rules, re-run redundant checks, or go in circles inside old experience
+- Anyone tired of repeating "keep this in mind" in chat and wanting it to become an actual global rule
 
 ## License
 
