@@ -6,7 +6,7 @@ A skill that puts Codex's global memory on a periodic diet: detect duplicates, p
 
 ## Why this exists
 
-Have you noticed your Codex getting slower and more verbose the longer you use it? You hand it a simple request, and it starts by digging through a pile of old rules — this needs verification first, that needs an approval gate, last time's lesson must be double-checked — turning a five-minute job into a process audit. Worse, sometimes it falls into a loop, grinding away at a problem that doesn't exist, burning tokens and solving nothing.
+Have you noticed your Codex getting slower and more verbose the longer you use it? You hand it a simple request, and it starts by digging through a pile of old rules — this needs verification first, that needs an approval gate — turning a five-minute job into a process audit. Worse, sometimes it falls into a loop, grinding away at a problem that doesn't exist, burning tokens and solving nothing.
 
 I'm not guessing; I lived it. A while back I handed Codex a long-running task. Based on similar tasks I'd given it before, I expected it done within 24 hours, so I left it running in the background and went off to other projects — and I'll admit my own part in this: I trusted my experience too much and never checked back in. A full week later it declared failure, reporting that the very first stage was incomplete. When I dug through the session history, what I found was almost absurd: it was "engineering" every single step according to my global memories. A trivial local startup script (the kind that just wraps Podman) got written, immediately sent into open-code-review, then endlessly patched against security guidelines, refined and re-refined on that one tiny problem while the main progress went nowhere. Strictly speaking, it did nothing wrong — every step followed the rules in its memory. But when every command and every script has to go through that gauntlet, efficiency drops off a cliff. Review-fix-review-again is what product releases deserve; dev environments and local demos don't need it at all.
 
@@ -14,7 +14,7 @@ The root cause is memory. Codex's global memory lives in `~/.codex/memories` and
 
 Here's the real trouble with old memories: they were written for old projects, old tasks, old contexts. Switch projects or task types, and those rules stop helping and start shackling. The model drags outdated constraints onto fresh requirements, runs redundant checks over and over, and eventually talks itself into a dead end. It's the same curse of knowledge humans suffer from: the more experienced you are, the harder it is to see a new problem with fresh eyes. The difference is that a person might eventually suspect they're outdated — a model won't. The rules sit in memory, get injected at the start of every session, and the model follows them faithfully every single time. Diligently inefficient.
 
-So two things need to happen: put the memory on a periodic diet (drop duplicates, prune the stale, shorten the verbose), and actively set rules that tell Codex when to be strict and when to be fast. This project turns both into a skill any Codex session can execute safely, so you never have to chew through several hundred KB of Markdown by hand.
+So two things need to happen: put the memory on a periodic diet — clear out the stale and redundant entries, tighten the verbose ones — and actively set rules that tell Codex when to be strict and when to be fast. This project turns both into a skill any Codex session can execute safely, so you never have to chew through several hundred KB of Markdown by hand.
 
 ## Real-world results
 
@@ -36,7 +36,7 @@ Details worth calling out:
 - **One rule used to exist in five wordings.** "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
 - **Memory kept growing during the trim.** Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
 
-The skill has been in use inside my team for a while now. Feedback has been good — people consistently report faster Codex turnarounds.
+The skill has been in use inside my team for a while now, and the reaction has been good: the common report is that Codex gets through tasks faster.
 
 ## Beyond trimming: setting the rules
 
@@ -117,8 +117,8 @@ A trim must move all three layers together. Delete files without touching the DB
 ## Who it's for
 
 - Heavy Codex users whose `~/.codex/memories` has grown past a few hundred KB or whose MEMORY.md runs over a thousand lines
-- Anyone watching Codex apply outdated rules, re-run redundant checks, or go in circles inside old experience
-- Anyone who wants to maintain global rules deliberately instead of repeating "remember this" in chat
+- Anyone who has watched Codex apply outdated rules, re-run redundant checks, or go in circles inside old experience
+- Anyone tired of repeating "keep this in mind" in chat and wanting it to become an actual global rule
 
 ## License
 
