@@ -25,12 +25,12 @@ I ran three trim rounds against my own production memory directory. All numbers 
 | Total memory dir (excl. .git) | ~1.1 MB | 593 KB | -46% |
 | Threads in state DB | 79 | 55 | -30% |
 
-Details worth calling out:
+A few details:
 
-- None of the 31 removed threads was a mistake. Five were empty "READY" echo sessions. The rest were mostly one-off lookups, records superseded by newer versions, and "memories" from sessions where not a single command was executed. Their common trait: zero retrieval hits. The verdict comes from the `usage_count` column in the `stage1_outputs` table, so you can see exactly what you're deleting before you delete it.
-- memory_summary.md is injected into every new session. Going from 97 lines to 40 cuts the fixed per-session overhead — and that's the number *after* adding two new global rules (efficiency-first, Superpowers gating) into it.
-- One rule used to exist in five wordings. "Push to pre, wait for manual acceptance before touching prod" appeared in five task groups with five different phrasings. Merged into one global preference; groups now keep only domain-specific rules.
-- Memory kept growing during the trim. Between the two nights, Codex's own consolidation added 8 new threads (new feature acceptance, incident diagnosis, and so on). The final state is the net result of "trim plus growth", with zero loss. This is routine maintenance you can rerun every few weeks, not a one-time surgery.
+- Of the 31 threads deleted, 5 were empty "READY" echo sessions; the rest were mostly one-off lookups, records superseded by newer versions, and "memories" from sessions where no command ever ran. The verdict was easy: zero in the `stage1_outputs` `usage_count` column — none of them had ever been retrieved.
+- memory_summary.md gets injected into every new session. Going from 97 lines to 40 is overhead saved on every session, and that's after adding two new global rules to it (efficiency-first, Superpowers gating).
+- "Push to pre, wait for manual acceptance before touching prod" used to exist in five different wordings across five task groups. Now it's one line in global preferences.
+- Codex itself kept busy during this period: automatic consolidation added 8 new threads (feature acceptance, incident diagnosis). The final state is trim plus growth, nothing lost. Rerunning every few weeks is fine.
 
 The skill has been in use inside my team for a while now, and the reaction has been good: the common report is that Codex gets through tasks faster.
 
