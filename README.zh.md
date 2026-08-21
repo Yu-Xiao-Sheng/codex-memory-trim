@@ -76,6 +76,8 @@ python3 ~/.codex/skills/codex-memory-trim/scripts/collect.py
 
 Linux 装的是 systemd 用户级 timer（`Persistent=true`，关机错过的那次会在下次开机补跑；`--random` 用 `RandomizedDelaySec`）；macOS 装的是 launchd LaunchAgent（launchd 没有随机延迟，`--random` 在安装时直接随机化触发时间点）。每次运行都会先备份再巡检，只有完全符合删除标准的线程才会被清理，没有合格候选就一个文件都不动；日志在 `~/.local/state/codex-memory-trim/auto.log`，同一时刻最多一个实例。两者都没有的系统会给出一条随机分钟的 crontab 行。
 
+定时环境里没有交互会话的认证变量时，把 key 放进 `~/.config/codex-memory-trim/env`（内容一行 `CODEX_API_KEY=...`，权限 600），脚本会自动加载；codex 的默认沙箱把 `~/.codex` 视为只读，脚本已带 `--sandbox danger-full-access`，安全栏由 skill 自身承担（备份前置、删除判据、git 回滚）。
+
 ## 三个子技能
 
 主 SKILL.md 是一张路由表，按意图只加载对应的子技能文件，不给上下文添负担。

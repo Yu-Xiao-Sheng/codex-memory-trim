@@ -24,6 +24,12 @@ PROMPT='使用 codex-memory-trim skill 自动整理全局记忆，按 trim 子�
 
 mkdir -p "$LOG_DIR"
 
+# schedulers run in clean environments; source the key file if present
+# (create with: mkdir -p ~/.config/codex-memory-trim && echo 'CODEX_API_KEY=...' > ~/.config/codex-memory-trim/env && chmod 600 ~/.config/codex-memory-trim/env)
+ENV_FILE="$HOME/.config/codex-memory-trim/env"
+[ -f "$ENV_FILE" ] && . "$ENV_FILE"
+export CODEX_API_KEY
+
 # migrate: very old versions left a lock FILE at this path; a directory is required
 [ -f "$LOCK_DIR" ] && rm -f "$LOCK_DIR"
 
@@ -43,7 +49,11 @@ trap 'rm -rf "$LOCK_DIR"' EXIT
 echo "$(ts) run start (codex: $CODEX_BIN)" >> "$LOG"
 
 # portable timeout: background job + watchdog
-"$CODEX_BIN" exec --skip-git-repo-check "$PROMPT" < /dev/null >> "$LOG" 2>&1 &
+# danger-full-access is required: the default workspace-write sandbox marks CODEX_HOME
+# (including ~/.codex/backups and ~/.codex/memories) read-only, which blocks the whole
+# maintenance flow; the safety rails live in the skill itself (backup-first, deletion
+# criteria, git rollback)
+"$CODEX_BIN" exec --skip-git-repo-check --sandbox danger-full-access "$PROMPT" < /dev/null >> "$LOG" 2>&1 &
 job=$!
 ( sleep "$MAX_SECONDS"; kill "$job" 2>/dev/null ) &
 watchdog=$!

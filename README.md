@@ -74,7 +74,9 @@ Let it tidy up on its own while the machine is on. Works on Linux and macOS:
 ./install.sh unschedule                       # remove
 ```
 
-On Linux this installs a systemd user timer with `Persistent=true` (a run missed while the machine was off fires after the next boot; `--random` maps to `RandomizedDelaySec`). On macOS it installs a launchd LaunchAgent — launchd has no randomized delay, so `--random` randomizes the trigger time at install time. Every run backs up first, then audits; only threads that fully meet the deletion criteria get cleaned, and if nothing qualifies it touches nothing. Logs go to `~/.local/state/codex-memory-trim/auto.log`, and overlapping runs are prevented with a lock. Systems with neither systemd nor launchd get a crontab line with a randomized minute instead.
+On Linux this installs a systemd user timer with `Persistent=true` (a run missed while the machine was off fires after the next boot; `--random` maps to `RandomizedDelaySec`). On macOS it installs a launchd LaunchAgent — launchd has no randomized delay, so `--random` randomizes the trigger time at install time. Every run backs up first, then audits; only threads that fully meet the deletion criteria get cleaned, and if nothing qualifies it touches nothing. Logs go to `~/.local/state/codex-memory-trim/auto.log`, and overlapping runs are prevented with a lock.
+
+Two environment notes for unattended runs: if the scheduler has no `CODEX_API_KEY` in its environment, put it in `~/.config/codex-memory-trim/env` (one line `CODEX_API_KEY=...`, chmod 600) — the script sources it automatically; and codex's default sandbox treats `~/.codex` as read-only, so the script passes `--sandbox danger-full-access` — the safety rails live in the skill itself (backup-first guard, deletion criteria, git rollback).
 
 ## Three sub-skills
 
