@@ -61,3 +61,4 @@ wait "$job"
 rc=$?
 kill "$watchdog" 2>/dev/null
 echo "$(ts) run end (exit $rc)" >> "$LOG"
+exit "$rc"
